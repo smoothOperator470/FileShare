@@ -1,43 +1,47 @@
 server:
-  port: 5000
+  port: ${PORT:5000}
 
 spring:
   mail:
-    host:
-    port:
-    username:
-    password:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth:
+          auth: true
           starttls:
-            enable: 
+            enable: true
+
   ses:
-    smtp-endpoint:
-    iam-username:
-    smtp-username:
-    smt-password:
+    smtp-endpoint: ${AWS_SES_SMTP_ENDPOINT}
+    iam-username: ${AWS_SES_IAM_USERNAME}
+    smtp-username: ${AWS_SES_SMTP_USERNAME}
+    smtp-password: ${AWS_SES_SMTP_PASSWORD}
 
   security:
     jwt:
-      secret:
+      secret: ${JWT_SECRET}
+
     oauth2:
       client:
         registration:
           google:
-            clientId:
-            clientSecret:
-    user:
-      name:
-      password:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
 
+    user:
+      name: ${SPRING_SECURITY_USERNAME:admin}
+      password: ${SPRING_SECURITY_PASSWORD:admin}
 
 aws:
-  upload-limit:
-  region:
-  key:
-  secret:
+  upload-limit: ${AWS_UPLOAD_LIMIT:10485760} # 10 MB
+  region: ${AWS_REGION}
+  key: ${AWS_ACCESS_KEY}
+  secret: ${AWS_SECRET_KEY}
+
   dynamo-db:
-    amazonDBEndpoint: dynamodb.ap-southeast-2.amazonaws.com
-  s3UploadBucketName:
+    amazonDBEndpoint: ${AWS_DYNAMODB_ENDPOINT:dynamodb.ap-southeast-2.amazonaws.com}
+
+  s3UploadBucketName: ${AWS_S3_BUCKET}

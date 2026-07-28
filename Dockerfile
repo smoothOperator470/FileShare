@@ -1,24 +1,23 @@
-# syntax=docker/dockerfile:1.4
+# Multi-stage production Dockerfile for Render deployment
+FROM maven:3.9-eclipse-temurin-17 AS builder
+WORKDIR /app
 
-FROM --platform=$BUILDPLATFORM maven:3.8.5-eclipse-temurin-17 AS builder
-WORKDIR /workdir/server
-COPY pom.xml /workdir/server/pom.xml
-RUN mvn dependency:go-offline
+# Copy pom.xml and source files
+COPY pom.xml .
+COPY frontend ./frontend
+COPY src ./src
 
-COPY src /workdir/server/src
-RUN mvn install
+# Build production JAR (skipping unit tests during Docker build)
+RUN mvn clean package -DskipTests
 
-FROM builder AS dev-envs
-RUN <<EOF
-apt-get update
-apt-get install -y --no-install-recommends git
-EOF
+# Production JRE runtime image (lightweight)
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
 
-RUN <<EOF
-useradd -s /bin/bash -m vscode
-groupadd docker
-usermod -aG docker vscode
-EOF
-# install Docker tools (cli, buildx, compose)
-COPY --from=gloursdocker/docker / /
-CMD ["mvn", "-Dspring.devtools.restart.enabled=true", "spring-boot:run"]
+# Copy built JAR from stage 1
+COPY --from=builder /app/target/file-share-1.1.4.jar app.jar
+
+EXPOSE 5000
+
+# Start Spring Boot application
+ENTRYPOINT ["java", "-jar", "app.jar"]

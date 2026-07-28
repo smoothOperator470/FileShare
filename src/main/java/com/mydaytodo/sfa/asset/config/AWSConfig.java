@@ -1,11 +1,14 @@
 package com.mydaytodo.sfa.asset.config;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,15 +18,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 @Configuration
+@ConfigurationProperties(prefix = "aws")
+@EnableDynamoDBRepositories(basePackages = "com.mydaytodo.sfa.asset.repository")
 @Getter
 @Setter
 @NoArgsConstructor
-@Component
-@ConfigurationProperties(prefix = "aws")
-@EnableDynamoDBRepositories(basePackages = "com.mydaytodo.sfa.asset.repository")
 @Slf4j
 public class AWSConfig {
 
@@ -38,28 +39,39 @@ public class AWSConfig {
     @Value("${aws.upload-limit}")
     private Integer uploadLimit;
 
-    /**
-     * AWS region set to AP_SOUTHEAST_2
-     * It can be changed in the config.yaml file
-     *
-     * @return
-     */
-    @Bean
-    public AmazonDynamoDB amazonDynamoDB() {
-        log.info("About to create DynamoDB client with {}", amazonDBEndpoint);
-        return new AmazonDynamoDBClient(amazonAwsCredentials())
-                .withEndpoint(amazonDBEndpoint)
-                .withRegion(Regions.fromName(region));
-    }
-
     @Bean
     public AWSCredentials amazonAwsCredentials() {
         return new BasicAWSCredentials(key, secret);
     }
 
     @Bean
-    public AmazonS3Client s3Client() {
-        return new AmazonS3Client(amazonAwsCredentials())
-                .withRegion(Regions.fromName(region));
+    public AmazonDynamoDB amazonDynamoDB() {
+        log.info("Initializing Amazon DynamoDB client...");
+
+        return AmazonDynamoDBClientBuilder.standard()
+                .withEndpointConfiguration(
+                        new EndpointConfiguration(
+                                "https://" + amazonDBEndpoint,
+                                region))
+                .withCredentials(
+                        new AWSStaticCredentialsProvider(
+                                amazonAwsCredentials()))
+                .build();
+    }
+
+    @Bean
+    public AmazonS3 amazonS3() {
+        log.info("Initializing Amazon S3 client...");
+
+        return AmazonS3ClientBuilder.standard()
+                .withRegion(Regions.fromName(region))
+                .withCredentials(
+                        new AWSStaticCredentialsProvider(
+                                amazonAwsCredentials()))
+                .build();
+    }
+
+    public AmazonS3 s3Client() {
+        return amazonS3();
     }
 }
