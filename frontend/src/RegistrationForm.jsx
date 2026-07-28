@@ -1,4 +1,4 @@
-import { Box, Container, FormControl, FormHelperText, Input, InputLabel, Button } from "@mui/material";
+import { Alert, Box, Container, FormControl, FormHelperText, Input, InputLabel, Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 
 export const RegistrationForm = (props) => {
@@ -7,25 +7,50 @@ export const RegistrationForm = (props) => {
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    const signup = (e) => {
+    const signup = async (e) => {
         e.preventDefault();
+        setError("");
+
         const jsonSignup = {};
         jsonSignup["name"] = name;
         jsonSignup["username"] = username;
         // TODO: still sending password in plain text, FIX!!!
         jsonSignup["password"] = password;
-        console.log(`About to create new user with ${JSON.stringify(jsonSignup)}`);
-        fetch("/api/user/create", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(jsonSignup),
-        }).then((resp) => {
-            console.log(JSON.stringify(resp));
+
+        setSubmitting(true);
+        try {
+            const resp = await fetch("/api/user/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(jsonSignup),
+            });
+
+            // Try to parse a JSON body even on error responses, since the
+            // backend may include a helpful message in ServiceResponse.
+            let data = {};
+            try {
+                data = await resp.json();
+            } catch (parseErr) {
+                // response had no JSON body - that's fine, fall through
+            }
+
+            if (!resp.ok) {
+                throw new Error(data.message || `Signup failed (status ${resp.status})`);
+            }
+
+            console.log("User created successfully:", data);
             closeForm(false);
-        });
+        } catch (err) {
+            console.error("Signup error:", err);
+            setError(err.message || "Something went wrong while creating your account. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -61,18 +86,28 @@ export const RegistrationForm = (props) => {
                         onChange={e => setPassword(e.target.value)} />
                     <FormHelperText id="passwordText">Please choose a strong password</FormHelperText>
                 </FormControl>
+
+                {error && (
+                    <Alert severity="error" sx={{ marginTop: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
                 <Box gap={2} sx={{
                     display: "flex",
-                    margin: "auto"
+                    margin: "auto",
+                    marginTop: 2
                 }}>
                     <Button size="small"
                         variant="contained"
-                        type="submit">
-                        Create Account
+                        type="submit"
+                        disabled={submitting}>
+                        {submitting ? <CircularProgress size={20} /> : "Create Account"}
                     </Button>
                     <Button size="small"
                         variant="contained"
-                        onClick={closeForm}>
+                        onClick={closeForm}
+                        disabled={submitting}>
                         Cancel & Go Back
                     </Button>
                 </Box>
