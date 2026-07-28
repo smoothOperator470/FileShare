@@ -81,13 +81,17 @@ export const UserAuth = (props) => {
                 "password": password
             })
         });
+        if (!resp.ok) {
+            setLoginError(true);
+            return;
+        }
         const data = await resp.json();
-        if (data.isError) {
+        if (data.isError || !data.data) {
             setLoginError(true);
         } else {
             setUserLoggedIn(true);
-            const token = data.data.access_token;
-            const name = data.name;
+            const token = data.data.accessToken || data.data.access_token;
+            const name = data.data.name || data.name;
             const userObj = {
                 name,
                 username,
