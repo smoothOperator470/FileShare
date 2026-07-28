@@ -34,10 +34,13 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthFilter authFilter;
 
+    @Autowired
+    private UserAuthServiceImpl userAuthService;
+
     // User Creation
     @Bean
     public UserDetailsService userDetailsService() {
-        return UserAuthServiceImpl.instance;
+        return userAuthService;
     }
 
     // Configuring HttpSecurity
