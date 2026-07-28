@@ -2,6 +2,9 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
 
+# Skip downloading Cypress test binary during container build
+ENV CYPRESS_INSTALL_BINARY=0
+
 # Copy pom.xml and source files
 COPY pom.xml .
 COPY frontend ./frontend
