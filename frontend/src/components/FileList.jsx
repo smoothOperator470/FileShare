@@ -143,10 +143,10 @@ export const FileList = (props) => {
         setDialogOpen(false);
     }
 
-    const shareFile = (e) => {
+    const shareFile = async (e) => {
+        e.preventDefault();
         setShareBtnDisabled(true);
         setShareBtnTxt("Sharing...");
-        e.preventDefault();
         const emailAdd = document.getElementById("shareEmailId").value;
         const filename = `${cookies.user.username}/${fileToShare}`;
         // get the logged in user
@@ -160,24 +160,43 @@ export const FileList = (props) => {
             body: `Dear ${emailAdd}, kindly download the attachment`,
             filesToAttach: [filename],
         };
-        fetch("/api/social/sendMail", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${cookies.user.token}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(emailBody),
-        }).then(() => {
+
+        try {
+            const resp = await fetch("/api/social/sendMail", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${cookies.user.token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(emailBody),
+            });
+
+            // Try to read a JSON body even on failure responses, since the
+            // backend's ServiceResponse/GlobalExceptionHandler may include
+            // a helpful message field.
+            let data = {};
+            try {
+                data = await resp.json();
+            } catch (parseErr) {
+                // no JSON body came back - fine, we'll fall back to status text
+            }
+
+            if (!resp.ok) {
+                throw new Error(data.message || `Sharing failed (status ${resp.status})`);
+            }
+
+            // success - close the dialog
             setDialogOpen(false);
+        } catch (err) {
+            console.error("Share file error:", err);
+            setAlertHeader("Could not share file");
+            setAlertMessage(err.message || "Something went wrong while sharing this file. Please try again.");
+            setAlertOpen(true);
+            // keep the share dialog open so the user can retry without re-entering the email
+        } finally {
             setShareBtnDisabled(false);
             setShareBtnTxt("Share");
-        }).catch(e => {
-            console.log(`Error occured ${e}`);
-            console.log(JSON.stringify(e));
-            setDialogOpen(false);
-            setShareBtnDisabled(false);
-            setShareBtnTxt("Share");
-        });
+        }
     }
     const hideFiles = () => {
         setShowFiles(false);
