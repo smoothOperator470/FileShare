@@ -47,11 +47,15 @@ public class AWSConfig {
     @Bean
     public AmazonDynamoDB amazonDynamoDB() {
         log.info("Initializing Amazon DynamoDB client...");
+        String endpoint = amazonDBEndpoint;
+        if (endpoint != null && !endpoint.startsWith("http://") && !endpoint.startsWith("https://")) {
+            endpoint = "https://" + endpoint;
+        }
 
         return AmazonDynamoDBClientBuilder.standard()
                 .withEndpointConfiguration(
                         new EndpointConfiguration(
-                                "https://" + amazonDBEndpoint,
+                                endpoint,
                                 region))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(

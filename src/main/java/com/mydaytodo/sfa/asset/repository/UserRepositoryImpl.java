@@ -8,6 +8,9 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.AttributeValueUpdate;
 import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodbv2.model.UpdateItemRequest;
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.mydaytodo.sfa.asset.config.AWSConfig;
 import com.mydaytodo.sfa.asset.model.CreateUserRequest;
 import com.mydaytodo.sfa.asset.model.db.FileUser;
@@ -35,7 +38,17 @@ public class UserRepositoryImpl {
         dynamoDB = AWSConfig.amazonDynamoDB();
         mapper = new DynamoDBMapper(dynamoDB);
         log.info("In the init DB method of UserRepositoryImpl");
-        // initLoadUsers();
+        try {
+            CreateTableRequest req = mapper.generateCreateTableRequest(FileUser.class);
+            req.setProvisionedThroughput(new ProvisionedThroughput(5L, 5L));
+            if (req.getGlobalSecondaryIndexes() != null) {
+                req.getGlobalSecondaryIndexes().forEach(gsi -> gsi.setProvisionedThroughput(new ProvisionedThroughput(5L, 5L)));
+            }
+            TableUtils.createTableIfNotExists(dynamoDB, req);
+            log.info("Ensured FileUser table exists in DynamoDB");
+        } catch (Exception e) {
+            log.warn("Could not auto-create FileUser table: {}", e.getMessage());
+        }
     }
 
     public Optional<FileUser> getUserByUsername(String username) throws UnsupportedOperationException {
