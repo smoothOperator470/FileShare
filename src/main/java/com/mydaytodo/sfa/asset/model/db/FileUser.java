@@ -2,6 +2,7 @@ package com.mydaytodo.sfa.asset.model.db;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +24,12 @@ public class FileUser {
 
     @DynamoDBHashKey(attributeName = "user_id")
     private String userid;
+
     // to ensure uniqueness, the username is the email id
     @DynamoDBAttribute(attributeName = "username")
+    @DynamoDBIndexHashKey(globalSecondaryIndexName = "username-index", attributeName = "username")
     private String username;
+
     @DynamoDBAttribute(attributeName = "password")
     private String password;
     @DynamoDBAttribute(attributeName = "date_joined")
